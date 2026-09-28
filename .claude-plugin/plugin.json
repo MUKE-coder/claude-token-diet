@@ -1,0 +1,10 @@
+{
+  "name": "token-diet",
+  "version": "1.0.0",
+  "description": "Autonomously configures large codebases so Claude Code uses far fewer tokens: deny rules, slim CLAUDE.md, LSP, one retrieval layer, read-guard and test-output hooks, scout subagent, codebase map.",
+  "author": { "name": "MUKE JOHNBAPTIST" },
+  "homepage": "https://github.com/MUKE-coder/claude-token-diet",
+  "repository": "https://github.com/MUKE-coder/claude-token-diet",
+  "license": "MIT",
+  "keywords": ["tokens", "cost", "context", "large-codebase", "monorepo", "claude-code"]
+}

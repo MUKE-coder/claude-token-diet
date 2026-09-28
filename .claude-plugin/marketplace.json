@@ -1,0 +1,12 @@
+{
+  "name": "token-diet",
+  "owner": { "name": "MUKE JOHNBAPTIST" },
+  "plugins": [
+    {
+      "name": "token-diet",
+      "source": "./",
+      "description": "Cut Claude Code token usage on large codebases — the agent sets everything up and verifies it.",
+      "version": "1.0.0"
+    }
+  ]
+}
