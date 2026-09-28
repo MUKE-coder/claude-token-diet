@@ -2,11 +2,13 @@
 # token-diet: verify the setup. Exit non-zero on hard failures.
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
+PY="$(command -v python3 || command -v python)"
+[ -n "$PY" ] || { echo "Python 3 not found (tried python3, python)"; exit 1; }
 ok=0
 echo "== settings JSON validity"
 for f in .claude/settings.json .claude/settings.local.json .mcp.json; do
   [ -f "$f" ] || continue
-  python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f" && echo "  ok   $f" || { echo "  FAIL $f invalid JSON"; ok=1; }
+  "$PY" -c "import json,sys; json.load(open(sys.argv[1]))" "$f" && echo "  ok   $f" || { echo "  FAIL $f invalid JSON"; ok=1; }
 done
 echo "== hooks"
 if [ -f .claude/hooks/read_guard.py ]; then

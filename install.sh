@@ -9,6 +9,6 @@ mkdir -p "$(dirname "$DEST")"
 rm -rf "$DEST"
 cp -R "$SRC" "$DEST"
 chmod +x "$DEST"/scripts/*.sh "$DEST"/scripts/*.py
-command -v python3 >/dev/null || echo "WARNING: python3 not found — token-diet scripts and hooks need Python 3."
+command -v python3 >/dev/null || command -v python >/dev/null || echo "WARNING: no python3/python found on PATH — token-diet scripts and hooks need Python 3."
 echo "Installed token-diet -> $DEST"
 echo "Open Claude Code in your big repo and say: run token-diet   (or type /token-diet)"

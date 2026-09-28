@@ -14,14 +14,24 @@ Usage:
 """
 import argparse, json, os, shutil, sys, time
 
-HOOKS = {
-    "hooks": {
-        "PreToolUse": [
-            {"matcher": "Read", "hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/read_guard.py"}]},
-            {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/filter_test_output.py"}]},
-        ]
+# `python3` isn't on PATH on plain Windows installs (only `python` is), and
+# hook commands are baked into settings.json verbatim, so resolve whichever
+# interpreter this machine actually has at merge time instead of hardcoding it.
+PYTHON_CMD = "python3" if shutil.which("python3") else "python"
+
+
+def hooks_patch(python_cmd):
+    return {
+        "hooks": {
+            "PreToolUse": [
+                {"matcher": "Read", "hooks": [{"type": "command", "command": f"{python_cmd} \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/read_guard.py"}]},
+                {"matcher": "Bash", "hooks": [{"type": "command", "command": f"{python_cmd} \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/filter_test_output.py"}]},
+            ]
+        }
     }
-}
+
+
+HOOKS = hooks_patch(PYTHON_CMD)
 
 
 def merge(a, b):
@@ -90,8 +100,13 @@ def main():
 
     if a.remove_hooks:
         pre = new.get("hooks", {}).get("PreToolUse", [])
-        ours = {json.dumps(h, sort_keys=True) for h in HOOKS["hooks"]["PreToolUse"]}
-        new.setdefault("hooks", {})["PreToolUse"] = [h for h in pre if json.dumps(h, sort_keys=True) not in ours]
+        markers = ("read_guard.py", "filter_test_output.py")
+
+        def is_ours(h):
+            cmds = " ".join(c.get("command", "") for c in h.get("hooks", []))
+            return any(m in cmds for m in markers)
+
+        new.setdefault("hooks", {})["PreToolUse"] = [h for h in pre if not is_ours(h)]
         if not new["hooks"]["PreToolUse"]:
             del new["hooks"]["PreToolUse"]
         if not new["hooks"]:

@@ -2,11 +2,20 @@
 """token-diet: inspect a repository and emit what later phases need.
 
 Usage: python3 detect.py [--root .] [--out .claude/token-diet/detect.json]
+(On Windows, where only `python` is on PATH, run: python detect.py ...)
 
 Stdlib only. Prints a compact human summary to stdout and writes full JSON to --out.
 """
 import argparse, json, os, re, shutil, subprocess, sys
 from collections import Counter, defaultdict
+
+# Windows consoles default to a legacy codepage (e.g. cp1252) that can't encode
+# the non-ASCII glyphs (≈, →) used in the summary below; force UTF-8 so the
+# script never crashes on the final print() regardless of platform/console.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 LANG_BY_EXT = {
     ".ts": "typescript", ".tsx": "typescript", ".js": "javascript", ".jsx": "javascript",
@@ -222,7 +231,7 @@ def main():
             lsp.setdefault(plugin, {"languages": [], "binary": binary, "installed": bool(shutil.which(binary)), "install": install})
             lsp[plugin]["languages"].append(lang)
 
-    tools = {t: bool(shutil.which(t)) for t in ("claude", "git", "python3", "node", "npm", "npx", "uv", "uvx", "pipx", "pip", "docker", "rtk", "jq")}
+    tools = {t: bool(shutil.which(t)) for t in ("claude", "git", "python3", "python", "node", "npm", "npx", "uv", "uvx", "pipx", "pip", "docker", "rtk", "jq")}
     settings = {s: os.path.exists(os.path.join(root, s)) for s in (".claude/settings.json", ".claude/settings.local.json", ".mcp.json")}
 
     root_md = next((c for c in claude_mds if c["path"] in ("CLAUDE.md", ".claude/CLAUDE.md")), None)

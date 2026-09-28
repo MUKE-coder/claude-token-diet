@@ -24,9 +24,13 @@ Everything below uses `${CLAUDE_SKILL_DIR}` for this skill's folder. Scripts are
 ## Phase 0 — Preflight & plan (one round of questions)
 
 1. Confirm you're at the repo root (`git rev-parse --show-toplevel`). If not a git repo, warn and continue without git features.
-2. Run:
+2. Resolve the Python 3 command once and reuse it for every command below (plain Windows installs typically only have `python`, not `python3`):
    ```bash
-   python3 ${CLAUDE_SKILL_DIR}/scripts/detect.py --out .claude/token-diet/detect.json
+   PY="$(command -v python3 || command -v python)"
+   ```
+   Then run:
+   ```bash
+   $PY ${CLAUDE_SKILL_DIR}/scripts/detect.py --out .claude/token-diet/detect.json
    ```
    Read only the printed summary (the JSON is for later phases).
 3. If `git status --porcelain` is non-empty, recommend a branch: `git checkout -b chore/token-diet`.
@@ -54,7 +58,7 @@ Details and exact formats: `references/native-config.md`. Do all of these:
 
 1. **Read deny rules.** Take `suggested_deny_rules` from `detect.json`, sanity-check them (never deny real source dirs; a dir named `build/` holding source code must not be denied), then merge:
    ```bash
-   python3 ${CLAUDE_SKILL_DIR}/scripts/merge_settings.py <settings-file> --deny-from .claude/token-diet/detect.json
+   $PY ${CLAUDE_SKILL_DIR}/scripts/merge_settings.py <settings-file> --deny-from .claude/token-diet/detect.json
    ```
 2. **Slim root CLAUDE.md to < 200 lines.** Back it up. Keep only repo-wide essentials. Everything area-specific moves to per-directory CLAUDE.md files or `.claude/rules/*.md` with `paths:`; long procedures move to skills. `@imports` do NOT save tokens — inline-import chains must be converted to on-demand files. Show the user the proposed moves as a short table and get one approval before rewriting (rule 2: rewriting instructions).
 3. **Append** `templates/claude-md-snippet.md` (exploration policy + compact instructions) to root CLAUDE.md, filling in real build/test commands from `detect.json`.
@@ -88,7 +92,7 @@ See `references/hooks.md`.
 mkdir -p .claude/hooks
 cp ${CLAUDE_SKILL_DIR}/scripts/read_guard.py ${CLAUDE_SKILL_DIR}/scripts/filter_test_output.py .claude/hooks/
 chmod +x .claude/hooks/*.py
-python3 ${CLAUDE_SKILL_DIR}/scripts/merge_settings.py <settings-file> --hooks
+$PY ${CLAUDE_SKILL_DIR}/scripts/merge_settings.py <settings-file> --hooks
 bash ${CLAUDE_SKILL_DIR}/scripts/test_hooks.sh .claude/hooks
 ```
 `test_hooks.sh` must print `ALL HOOK TESTS PASSED`. If it fails, fix before continuing.
@@ -123,7 +127,7 @@ Finally give the user a SHORT summary (≤ 15 lines) and point to REPORT.md. Mar
 
 ## Undo
 
-Everything edited is backed up under `.claude/token-diet/backup/`. To roll back: restore those files, remove `.claude/hooks/read_guard.py` and `filter_test_output.py`, remove the hook entries with `python3 ${CLAUDE_SKILL_DIR}/scripts/merge_settings.py <settings-file> --remove-hooks`, and `claude mcp remove <server>` / `claude plugin uninstall <plugin>`. If asked to undo, do exactly this.
+Everything edited is backed up under `.claude/token-diet/backup/`. To roll back: restore those files, remove `.claude/hooks/read_guard.py` and `filter_test_output.py`, remove the hook entries with `$PY ${CLAUDE_SKILL_DIR}/scripts/merge_settings.py <settings-file> --remove-hooks`, and `claude mcp remove <server>` / `claude plugin uninstall <plugin>`. If asked to undo, do exactly this.
 
 ## Reference map
 

@@ -3,10 +3,16 @@
 # Usage: baseline.sh > .claude/token-baseline.md
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
+PY="$(command -v python3 || command -v python)"
+[ -n "$PY" ] || { echo "Python 3 not found (tried python3, python)"; exit 1; }
 tmpjson="$(mktemp)"; trap 'rm -f "$tmpjson"' EXIT
-python3 "$DIR/detect.py" --out "$tmpjson" >/dev/null 2>&1 || { echo "detect.py failed"; exit 1; }
-python3 - "$tmpjson" <<'PY'
+"$PY" "$DIR/detect.py" --out "$tmpjson" >/dev/null 2>&1 || { echo "detect.py failed"; exit 1; }
+"$PY" - "$tmpjson" <<'PY'
 import json, sys, datetime, os
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 d = json.load(open(sys.argv[1]))
 print(f"# token-diet snapshot — {datetime.datetime.now():%Y-%m-%d %H:%M}\n")
 print(f"- Tracked files: **{d['files_tracked']:,}**  |  Lines: **{d['total_lines']:,}**  |  Whole repo ≈ **{d['est_total_tokens']:,}** tokens")

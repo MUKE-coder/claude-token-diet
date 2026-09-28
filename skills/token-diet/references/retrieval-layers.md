@@ -22,7 +22,7 @@ Official marketplace: `anthropics/claude-plugins-official`. Plugin names in `det
 ```bash
 claude plugin marketplace add anthropics/claude-plugins-official
 # find the manifest and list LSP plugin names
-find ~/.claude/plugins -path '*claude-plugins-official*' -name marketplace.json -exec python3 -c "import json,sys; [print(p['name']) for p in json.load(open(sys.argv[1])).get('plugins',[]) if 'lsp' in p['name'] or 'analyzer' in p['name']]" {} \;
+find ~/.claude/plugins -path '*claude-plugins-official*' -name marketplace.json -exec $PY -c "import json,sys; [print(p['name']) for p in json.load(open(sys.argv[1])).get('plugins',[]) if 'lsp' in p['name'] or 'analyzer' in p['name']]" {} \;
 claude plugin install <name>@claude-plugins-official
 ```
 If `claude plugin …` subcommands are unavailable in this version, give the user the exact `/plugin install <name>@claude-plugins-official` line to run and continue.

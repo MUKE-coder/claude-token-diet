@@ -2,11 +2,21 @@
 # token-diet: self-test the installed hooks. Usage: test_hooks.sh [hooks-dir]
 set -u
 DIR="${1:-.claude/hooks}"
-PY="${PYTHON:-python3}"
+PY="${PYTHON:-$(command -v python3 || command -v python)}"
+[ -n "$PY" ] || { echo "Python 3 not found (tried python3, python)"; exit 1; }
+# filter_test_output.py's FAIL_PATTERN contains non-ASCII glyphs (✗ ✕ ×); this
+# script's helper one-liners decode and print them, which crashes on Windows'
+# default cp1252 console unless stdout is forced to UTF-8.
+export PYTHONIOENCODING=utf-8
 fail=0
 pass() { echo "  ok   $1"; }
 bad()  { echo "  FAIL $1"; fail=1; }
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+# On Windows/git-bash, argv paths passed straight to a native (non-MSYS) python are
+# auto-translated from /tmp/... to C:\... , but paths embedded in JSON sent over
+# stdin are not — python then can't find the file. Convert explicitly with cygpath
+# (present in git-bash) wherever a $tmp path is embedded in piped JSON below.
+if command -v cygpath >/dev/null 2>&1; then winroot="$(cygpath -m "$tmp")"; else winroot="$tmp"; fi
 
 echo "read_guard.py"
 $PY - "$tmp/big.py" <<'PY'
@@ -16,14 +26,14 @@ with open(sys.argv[1], "w") as f:
         f.write(f"def fn_{i}(x):\n    return x + {i}  # padding padding padding\n")
 PY
 printf 'x = 1\n' > "$tmp/small.py"
-out=$(printf '{"tool_input":{"file_path":"%s"}}' "$tmp/big.py" | CLAUDE_PROJECT_DIR="$tmp" $PY "$DIR/read_guard.py")
+out=$(printf '{"tool_input":{"file_path":"%s"}}' "$winroot/big.py" | CLAUDE_PROJECT_DIR="$winroot" $PY "$DIR/read_guard.py")
 echo "$out" | grep -q '"deny"' && echo "$out" | grep -q 'fn_0' && pass "blocks big whole-file read with outline" || bad "big file not blocked: $out"
-out=$(printf '{"tool_input":{"file_path":"%s","offset":10,"limit":50}}' "$tmp/big.py" | CLAUDE_PROJECT_DIR="$tmp" $PY "$DIR/read_guard.py")
+out=$(printf '{"tool_input":{"file_path":"%s","offset":10,"limit":50}}' "$winroot/big.py" | CLAUDE_PROJECT_DIR="$winroot" $PY "$DIR/read_guard.py")
 [ "$out" = "{}" ] && pass "allows sliced read" || bad "sliced read blocked: $out"
-out=$(printf '{"tool_input":{"file_path":"%s"}}' "$tmp/small.py" | CLAUDE_PROJECT_DIR="$tmp" $PY "$DIR/read_guard.py")
+out=$(printf '{"tool_input":{"file_path":"%s"}}' "$winroot/small.py" | CLAUDE_PROJECT_DIR="$winroot" $PY "$DIR/read_guard.py")
 [ "$out" = "{}" ] && pass "allows small file" || bad "small file blocked"
 mkdir -p "$tmp/.claude/token-diet"; echo "*big.py" > "$tmp/.claude/token-diet/read-allow.txt"
-out=$(printf '{"tool_input":{"file_path":"%s"}}' "$tmp/big.py" | CLAUDE_PROJECT_DIR="$tmp" $PY "$DIR/read_guard.py")
+out=$(printf '{"tool_input":{"file_path":"%s"}}' "$winroot/big.py" | CLAUDE_PROJECT_DIR="$winroot" $PY "$DIR/read_guard.py")
 [ "$out" = "{}" ] && pass "respects read-allow.txt" || bad "allowlist ignored"
 out=$(echo 'not json' | $PY "$DIR/read_guard.py")
 [ "$out" = "{}" ] && pass "fails open on bad input" || bad "crashed on bad input"
